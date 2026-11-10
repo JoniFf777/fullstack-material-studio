@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* 色板见 spec/05 §2 */
+@theme {
+  --color-page: #0b0b0e;
+  --color-panel: #141418;
+  --color-card: #1c1c22;
+  --color-line: #2a2a32;
+  --color-ink: #f4f4f5;
+  --color-muted: #a1a1aa;
+  --color-brand: #a3e635;
+  --color-brand-ink: #111111;
+  --color-ok: #4ade80;
+  --color-warn: #fbbf24;
+  --color-bad: #f87171;
+  --font-sans: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* 保留键盘焦点框，不写 outline: none */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
