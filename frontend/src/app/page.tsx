@@ -1,7 +1,11 @@
+import { Suspense } from "react";
+import { TemplatesBrowser } from "@/features/templates/TemplatesBrowser";
+
 export default function HomePage() {
+  // TemplatesBrowser 用 useSearchParams 读取当前分类，必须包在 Suspense 里
   return (
-    <main className="mx-auto max-w-6xl p-6">
-      <h1 className="text-xl font-semibold">素材工坊</h1>
-    </main>
+    <Suspense fallback={null}>
+      <TemplatesBrowser />
+    </Suspense>
   );
 }
