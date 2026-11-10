@@ -30,4 +30,14 @@ class TaskRecoveryIT extends AbstractTaskIntegrationTest {
         long id=jdbc.queryForObject("SELECT MAX(id) FROM generation_task WHERE user_id=?",Long.class,userId);recovery.recover();
         var task=query.require(id,userId);assertEquals(TaskStatus.FAILED,task.status());assertNull(task.stage());assertNull(task.failedStage());
     }
+    @Test void restartBetweenStepsPreservesAlreadyCompletedStep() {
+        var now=Timestamp.from(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS));
+        jdbc.update("INSERT INTO generation_task(user_id,template_id,status,stage,sim_plan,created_at,started_at,updated_at) VALUES(?,'pet-sticker','PROCESSING','MATERIAL_CHECK',?,?,?,?)",
+                userId,json.writeValueAsString(settings.snapshot()),now,now,now);
+        long id=jdbc.queryForObject("SELECT MAX(id) FROM generation_task WHERE user_id=?",Long.class,userId);
+        jdbc.update("INSERT INTO generation_task_step(task_id,stage,status,started_at,finished_at,message) VALUES(?,'MATERIAL_CHECK','SUCCEEDED',?,?,'已检查 1 张图片')",id,now,now);
+        recovery.recover();var task=query.require(id,userId);
+        assertEquals(TaskStatus.FAILED,task.status());assertEquals("INTERRUPTED",task.errorCode());
+        assertEquals(TaskStage.MATERIAL_CHECK,task.failedStage());assertEquals(StepStatus.SUCCEEDED,task.steps().getFirst().status());
+    }
 }

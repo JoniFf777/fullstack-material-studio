@@ -13,5 +13,4 @@ public class TaskContextLoader {
         var t=tasks.forWorker(id);
         return new TaskContext(id,t.getUserId(),t.getTemplateId(),materials.forWorker(id,t.getUserId()),json.readValue(t.getSimPlan(),SimulationPlan.class));
     }
-    public TaskStage currentStage(long id){var task=tasks.forWorker(id);return task==null?null:task.getStage();}
 }

@@ -14,6 +14,9 @@
 - 线程池等待优雅停机 15 秒后显式 `shutdownNow()`，中断未结束的 worker；中断不标业务失败，交由下次启动恢复。队列中的任务仍在数据库保存 PENDING。
 - `limit` 小于 1 返回字段校验错误，大于 100 按 100 截断；不额外扩展接口。结果保留原图比例，使用模板对应的背景补边，不绘制字体。
 - 新注册账号的哈希格式为 `{bcrypt-sha256}` + BCrypt(SHA-256 的 64 位 ASCII 十六进制摘要)，强度 10。这样支持契约允许的 6–64 位 Unicode 密码且不会在 72 字节处截断。种子和早期账号仍识别普通 BCrypt；格式标记避免与普通 BCrypt 密码发生输入歧义。
+- Docker 运行阶段使用官方 `eclipse-temurin:21-jre`，该镜像实测已经包含 `/usr/bin/curl`。Dockerfile 使用 `command -v curl` 在构建时验证，不执行多余的软件源更新。运行用户为 `studio`（实测 UID/GID 999），`/app` 和 `/data` 归该用户，时区 UTC。
+- Docker 构建可选通过 BuildKit secret `maven_settings` 传入本机已有 Maven settings；默认不需要传入。secret 不进入镜像层，Dockerfile 和 pom 均无镜像地址。构建依赖缓存统一位于 Linux 的 `/root/.m2/repository`。
+- 步骤业务错误与状态持久化错误分别处理：业务错误保存失败并终止；状态事务抛出异常时停止执行并保留数据库事实，等待启动恢复。恢复时已成功的步骤保持成功，任务可以因重启成为 FAILED / INTERRUPTED（阶段间重启边界）。
 
 ## 阶段验收
 
@@ -24,6 +27,8 @@
 - B4：`mvn test` 15 项全过，包含原子文件写入、路径穿越拒绝、文件头识别、全局 413、模板限制和用户隔离；local `smoke --only upload` 13 项全过。
 - B5：先写 `TaskPipelineTest` / `TaskStateGuardIT` 并运行确认编译失败（缺少尚未实现的引擎），再实现；最终 `mvn test` 47 项全过、0 跳过，所有指定测试类均执行。local 全量 `smoke http://localhost:8080` 69 项全过，16.3 秒；包括真实分辨率失败、快照、查询故障、用户隔离和幂等。
 - B6（2026-11-10）：`mvn test` 55 项全过、0 跳过；包含 13 个真实响应与夹具字段集合比对、开发接口关闭、提交后才派发（独立 JDBC 连接可见已提交关联）、回滚不派发、重复投递只执行一次和文件损坏。修复密码边界后全量 local 冒烟再次 69 项全过，17.4 秒。
+- B7（2026-11-10）：`mvn test` 59 项全过、0 跳过；新增状态提交异常和阶段间重启回归。最终 `docker build -t material-studio-backend:b7 backend`（不传 secret）成功。镜像用非 root 用户连接 Compose MySQL 8.4，健康响应为 `{"status":"UP"}`，数据目录可写；local 全量冒烟 69 项通过（16.2 秒），容器全量冒烟 69 项通过（27.9 秒）。
+- B7 真实重启 S12：单 worker，A=#51 的 GENERATING 快照耗时 60000ms，B=#52 为排队任务。`docker restart -t 20` 后 A 为 FAILED / INTERRUPTED，failedStage=GENERATING，RUNNING 步骤改为 FAILED；B 自动完成且持久结果返回 200。重启和恢复共 20.4 秒。验证期间停止 local 实例，避免两个实例同时恢复同一数据库。
 
 ## curl 自测记录
 
@@ -43,6 +48,8 @@
 - B0：健康响应出现额外 `groups`，不符合 03 契约。先新增 `HealthIT.healthHasExactlyTheContractFields`，在真实 MySQL 上确认失败（Unexpected: groups），再关闭默认探针组。保留数据库健康检查。
 - B5：加入日志 MDC 配置时误写了重复的 `spring` YAML 键，应用集成测试复现 `found duplicate key spring`。合并为单个配置段后，全量测试和 local 冒烟通过；未改契约。
 - B6：64 位中文密码符合契约字符长度，但 UTF-8 编码为 192 字节，直接 BCrypt 抛出 `password cannot be more than 72 bytes`，注册返回 500。先新增 `AuthIT.unicodePasswordAtContractMaximumCanRegisterAndLoginWithoutTruncation` 确认 201/500 差异，再加入带标记的 SHA-256 → BCrypt 格式和普通 BCrypt 兼容分支。测试同时检查正确密码登录成功、仅末字不同被拒绝、演示账号用超长错误密码也返回 401；全量测试和冒烟均通过。
+- B7：原 `TaskRunner` 会把阶段边界的状态写入异常标记为 INTERNAL_ERROR；`TaskPipeline` 也把完成状态的提交异常纳入了步骤业务错误处理。如果数据库已提交但确认丢失，可能产生“步骤已成功、任务却因该步骤业务失败”的不一致。先新增两个 `TaskPipelineTest` 回归用例，确认 `expected PROCESSING but was FAILED`；随后将完成状态写入移到业务异常捕获范围之外，阶段边界异常保留 PROCESSING 等待恢复。另以 `TaskRecoveryIT.restartBetweenStepsPreservesAlreadyCompletedStep` 验证已结束步骤不被改写。最终 59 项测试和两次全量冒烟均通过。
+- B7 环境：首次拉取官方基础镜像很慢，下载缓存均逐层校验官方 SHA-256 后才导入；未改仓库镜像地址。曾在运行镜像中进行不必要的 `apt-get update`，遭遇上游索引 502/404。确认官方 JRE 镜像已有 curl 后，最终 Dockerfile 直接验证其存在，移除该外部索引依赖。临时缓存不提交。
 
 ## 运行边界
 

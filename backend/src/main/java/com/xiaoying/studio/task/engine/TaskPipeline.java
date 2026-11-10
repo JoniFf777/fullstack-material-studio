@@ -15,11 +15,10 @@ public class TaskPipeline {
             var stage=step.stage();
             if(!store.enterStage(ctx.taskId(),stage)){log.warn("State guard rejected stage {}",stage);return;}
             long started=System.nanoTime();log.info("STEP_START stage={}",stage);
+            String summary;
             try {
                 simulator.beforeStep(ctx.plan(),stage);
-                var summary=step.execute(ctx);
-                if(!store.completeStep(ctx.taskId(),stage,summary)){log.warn("State guard rejected completion {}",stage);return;}
-                log.info("STEP_END stage={} durationMs={}",stage,(System.nanoTime()-started)/1_000_000);
+                summary=step.execute(ctx);
             } catch(StepFailedException e){
                 store.failStepAndTask(ctx.taskId(),stage,e.code(),e.getMessage());
                 log.warn("STEP_FAILED stage={} code={} message={}",stage,e.code(),e.getMessage());return;
@@ -28,6 +27,8 @@ public class TaskPipeline {
                 log.error("STEP_FAILED stage={} code=INTERNAL_ERROR",stage,e);
                 store.failStepAndTask(ctx.taskId(),stage,"INTERNAL_ERROR","系统内部错误，请稍后重试");return;
             }
+            if(!store.completeStep(ctx.taskId(),stage,summary)){log.warn("State guard rejected completion {}",stage);return;}
+            log.info("STEP_END stage={} durationMs={}",stage,(System.nanoTime()-started)/1_000_000);
         }
         if(!store.succeed(ctx.taskId(),ctx.resultKey()))log.warn("State guard rejected success");
     }

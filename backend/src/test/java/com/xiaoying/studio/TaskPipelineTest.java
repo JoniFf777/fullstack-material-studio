@@ -23,7 +23,9 @@ class TaskPipelineTest {
         }
         @Override public boolean completeStep(long id,TaskStage value,String message) { steps.put(value,"SUCCEEDED");events.add("complete:"+value);return true; }
         @Override public boolean failStepAndTask(long id,TaskStage value,String error,String message) {
-            status="FAILED";failed=value;code=error;if(value!=null)steps.put(value,"FAILED");events.add("fail:"+value);return true;
+            status="FAILED";failed=value;code=error;
+            if(value!=null && "RUNNING".equals(steps.get(value)))steps.put(value,"FAILED");
+            events.add("fail:"+value);return true;
         }
         @Override public boolean succeed(long id,String key) { status="SUCCEEDED";result=key;events.add("succeed");return true; }
     }
@@ -99,5 +101,38 @@ class TaskPipelineTest {
             assertEquals("PROCESSING",store.status);assertEquals("RUNNING",store.steps.get(TaskStage.MATERIAL_CHECK));
             assertTrue(called.isEmpty());
         } finally { Thread.interrupted(); }
+    }
+    @Test void failedFinalStateCommitLeavesCompletedStepsForRestartRecovery() {
+        var store=new MemoryStore(){
+            @Override public boolean succeed(long id,String key){throw new IllegalStateException("state store unavailable");}
+        };
+        store.status="PENDING";
+        var called=new ArrayList<TaskStage>();var loader=mock(TaskContextLoader.class);
+        when(loader.load(1)).thenReturn(context("NONE"));
+        var runner=new TaskRunner(store,loader,pipeline(store,called,null,false));
+        try {runner.run(1);} catch(IllegalStateException expected) { }
+        assertEquals("PROCESSING",store.status);
+        assertTrue(store.steps.values().stream().allMatch("SUCCEEDED"::equals));
+        assertNull(store.failed);assertNull(store.code);
+    }
+    @Test void contextLoadFailureIsRecordedBeforeAnyStage() {
+        var store=new MemoryStore();store.status="PENDING";
+        var loader=mock(TaskContextLoader.class);var pipeline=mock(TaskPipeline.class);
+        when(loader.load(1)).thenThrow(new IllegalStateException("invalid context"));
+        new TaskRunner(store,loader,pipeline).run(1);
+        assertEquals("FAILED",store.status);assertEquals("INTERNAL_ERROR",store.code);assertNull(store.failed);
+        assertTrue(store.steps.isEmpty());verifyNoInteractions(pipeline);
+    }
+    @Test void lostStepCommitAcknowledgementDoesNotTurnCompletedStepIntoBusinessFailure() {
+        var store=new MemoryStore(){
+            @Override public boolean completeStep(long id,TaskStage stage,String message){
+                super.completeStep(id,stage,message);
+                throw new IllegalStateException("connection lost after commit");
+            }
+        };
+        var called=new ArrayList<TaskStage>();
+        try {pipeline(store,called,null,false).execute(context("NONE"));} catch(IllegalStateException expected) { }
+        assertEquals("PROCESSING",store.status);assertEquals("SUCCEEDED",store.steps.get(TaskStage.MATERIAL_CHECK));
+        assertEquals(List.of(TaskStage.MATERIAL_CHECK),called);assertNull(store.code);
     }
 }

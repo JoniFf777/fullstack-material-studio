@@ -9,10 +9,19 @@ public class TaskRunner {
     public void run(long id){
         try(var ignored=MDC.putCloseable("taskId",Long.toString(id))){
             if(!store.claim(id))return;
-            try {pipeline.execute(loader.load(id));}
+            TaskContext context;
+            try {context=loader.load(id);}
             catch(RuntimeException e){
-                log.error("Task execution failed outside step boundary",e);
-                store.failStepAndTask(id,loader.currentStage(id),"INTERNAL_ERROR","系统内部错误，请稍后重试");
+                log.error("Task context could not be loaded",e);
+                store.failStepAndTask(id,null,"INTERNAL_ERROR","系统内部错误，请稍后重试");
+                return;
+            }
+            try {pipeline.execute(context);}
+            catch(RuntimeException e){
+                // Step execution errors are handled inside the pipeline. An error here
+                // belongs to a state boundary; completed steps must stay immutable.
+                log.error("State persistence failed; leaving task for startup recovery",e);
+                throw e;
             }
         }
     }
