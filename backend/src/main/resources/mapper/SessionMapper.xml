@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiaoying.studio.auth.SessionMapper">
+  <insert id="insert">
+    INSERT INTO user_session(token_hash,user_id,created_at,expires_at) VALUES(#{hash},#{userId},#{now},#{expiresAt})
+  </insert>
+  <select id="findUser" resultType="com.xiaoying.studio.auth.UserRow">
+    SELECT u.* FROM user_session s JOIN app_user u ON u.id=s.user_id WHERE s.token_hash=#{hash} AND s.expires_at &gt; #{now}
+  </select>
+  <delete id="delete">DELETE FROM user_session WHERE token_hash=#{hash}</delete>
+</mapper>
