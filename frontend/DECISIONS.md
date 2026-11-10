@@ -24,6 +24,7 @@
   - 未登录访问 `/` 被 proxy 重定向到 `/login`；用 demo 登录后回到首页。
   - S01：5 个分类、8 个模板；"萌宠"2 个，地址栏为 `?category=pets`；"婚礼"显示空状态；`/templates/wedding-invite` 显示"模板不存在或已下线"；旅行明信片显示"需要 2 张 · JPG / PNG · 每张不超过 5MB"。
   - S02：页面内生成的 JPG 上传后"已就绪"；文本冒充的 .jpg 被服务端拒绝，上传位显示原因和重试按钮；换成 PNG 后按钮变为"立即制作"；提交返回 202，提示"已提交，任务 #64 已进入队列"，上传位清空；迷你头像选 300KB 文件、复古胶片选 PNG，都在前端直接提示，没有发出上传请求。
+- F5（测试先行）：先写 `taskView`、`mergeTask`、`taskTracking` 的测试，用只抛"尚未实现"的空壳确认失败（mergeTask 6 个、taskView 9 个失败，taskTracking 因缺少 HistoryPanel 无法加载）；实现后 20 项全部通过。`createPanel` 的 3 项测试写在 CreatePanel（F4）之后，首次运行即通过。全部 58 项测试、lint、typecheck 通过。S03–S10 的浏览器核对尚未完成。
 - 内置浏览器无法操作系统文件选择框，验证时在页面里用 canvas 生成图片，通过 DataTransfer 放进 `<input type="file">` 再触发 change 事件，后面的上传流程与真实选择文件相同。
 
 ## 问题记录

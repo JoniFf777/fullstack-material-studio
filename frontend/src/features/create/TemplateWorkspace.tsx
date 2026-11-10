@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import { StatePlaceholder } from "@/components/StatePlaceholder";
+import { HistoryPanel } from "@/features/tasks/HistoryPanel";
 import { useTemplate } from "@/features/templates/useCatalog";
 import { errorCode, errorMessage } from "@/lib/api/errors";
 import type { TemplateDetailDto } from "@/lib/api/types";
@@ -84,6 +85,7 @@ export function TemplateWorkspace({ id }: { id: string }) {
         </p>
         <CreatePanel key={template.id} template={template} />
       </section>
+      <HistoryPanel templateId={template.id} />
     </div>
   );
 }
