@@ -20,6 +20,11 @@
 
 - F0：`npm run lint`、`npm run typecheck`、`npm run build` 通过，生成 `.next/standalone/server.js`。
 - F1：`apiClient.test.ts`（10 项）和 `fixtures.test.ts`（15 项，13 个夹具全部通过前端校验）通过；lint、typecheck 通过。
+- F2–F4：`uploadSlotsReducer.test.ts`、`validateFile.test.ts` 通过（共 35 项）。用开发服务器（:3000，转发到本机后端 :8080）在内置浏览器里核对：
+  - 未登录访问 `/` 被 proxy 重定向到 `/login`；用 demo 登录后回到首页。
+  - S01：5 个分类、8 个模板；"萌宠"2 个，地址栏为 `?category=pets`；"婚礼"显示空状态；`/templates/wedding-invite` 显示"模板不存在或已下线"；旅行明信片显示"需要 2 张 · JPG / PNG · 每张不超过 5MB"。
+  - S02：页面内生成的 JPG 上传后"已就绪"；文本冒充的 .jpg 被服务端拒绝，上传位显示原因和重试按钮；换成 PNG 后按钮变为"立即制作"；提交返回 202，提示"已提交，任务 #64 已进入队列"，上传位清空；迷你头像选 300KB 文件、复古胶片选 PNG，都在前端直接提示，没有发出上传请求。
+- 内置浏览器无法操作系统文件选择框，验证时在页面里用 canvas 生成图片，通过 DataTransfer 放进 `<input type="file">` 再触发 change 事件，后面的上传流程与真实选择文件相同。
 
 ## 问题记录
 
