@@ -1,0 +1,43 @@
+{
+  "id": 101,
+  "templateId": "travel-postcard",
+  "templateTitle": "旅行明信片",
+  "coverUrl": "/demo/covers/travel-postcard.png",
+  "status": "SUCCEEDED",
+  "stage": "RESULT_ASSEMBLY",
+  "failedStage": null,
+  "errorCode": null,
+  "errorMessage": null,
+  "resultUrl": "/api/tasks/101/result",
+  "materials": [
+    { "slotIndex": 0, "materialId": 11, "url": "/api/materials/11/content" },
+    { "slotIndex": 1, "materialId": 12, "url": "/api/materials/12/content" }
+  ],
+  "steps": [
+    {
+      "stage": "MATERIAL_CHECK",
+      "status": "SUCCEEDED",
+      "startedAt": "2026-11-10T08:31:00.015Z",
+      "finishedAt": "2026-11-10T08:31:01.528Z",
+      "message": "已检查 2 张图片"
+    },
+    {
+      "stage": "GENERATING",
+      "status": "SUCCEEDED",
+      "startedAt": "2026-11-10T08:31:01.534Z",
+      "finishedAt": "2026-11-10T08:31:05.602Z",
+      "message": "已生成 720×960 的中间图"
+    },
+    {
+      "stage": "RESULT_ASSEMBLY",
+      "status": "SUCCEEDED",
+      "startedAt": "2026-11-10T08:31:05.608Z",
+      "finishedAt": "2026-11-10T08:31:07.143Z",
+      "message": "已输出结果图片"
+    }
+  ],
+  "createdAt": "2026-11-10T08:31:00.000Z",
+  "startedAt": "2026-11-10T08:31:00.012Z",
+  "finishedAt": "2026-11-10T08:31:07.146Z",
+  "updatedAt": "2026-11-10T08:31:07.146Z"
+}

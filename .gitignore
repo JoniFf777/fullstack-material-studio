@@ -1,0 +1,26 @@
+# 依赖与构建产物
+node_modules/
+.next/
+coverage/
+*.tsbuildinfo
+backend/target/
+
+# 运行时数据（STORAGE_ROOT 默认是 ./data）
+/data/
+/backend/data/
+
+# 本地配置与密钥：只提交 .env.example
+.env
+.env.*
+!.env.example
+
+# 日志与临时文件（cj.txt 是 curl 速查里用的 Cookie 文件）
+*.log
+cj.txt
+
+# IDE 与系统文件
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

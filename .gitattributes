@@ -1,0 +1,23 @@
+# 默认按文本处理，仓库和工作区统一用 LF
+* text=auto eol=lf
+
+# Windows 脚本保持 CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# 在 Linux 容器和 CI 里执行的脚本，必须是 LF
+mvnw text eol=lf
+*.sh text eol=lf
+
+# 二进制文件（samples/not-image.jpg 虽然是文本，也按二进制保存，保证字节不变）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary

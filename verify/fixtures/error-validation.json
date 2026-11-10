@@ -1,0 +1,8 @@
+{
+  "code": "VALIDATION_FAILED",
+  "message": "请求参数不合法",
+  "fieldErrors": [
+    { "field": "username", "message": "用户名为 3–20 位字母、数字或下划线" },
+    { "field": "password", "message": "密码长度为 6–64 位" }
+  ]
+}

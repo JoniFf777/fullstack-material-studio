@@ -1,0 +1,9 @@
+{
+  "items": [
+    { "code": "hot", "name": "热门", "templateCount": 2 },
+    { "code": "pets", "name": "萌宠", "templateCount": 2 },
+    { "code": "festival", "name": "节日", "templateCount": 2 },
+    { "code": "travel", "name": "旅行", "templateCount": 2 },
+    { "code": "wedding", "name": "婚礼", "templateCount": 0 }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "travel-postcard",
+  "title": "旅行明信片",
+  "categoryCode": "travel",
+  "categoryName": "旅行",
+  "coverUrl": "/demo/covers/travel-postcard.png",
+  "requiredImageCount": 2,
+  "description": "上传 2 张旅行照片，模拟生成一张明信片",
+  "acceptedMimeTypes": ["image/jpeg", "image/png"],
+  "maxFileSizeBytes": 5242880
+}

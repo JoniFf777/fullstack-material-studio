@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "id": "pet-sticker",
+      "title": "萌宠贴纸",
+      "categoryCode": "pets",
+      "categoryName": "萌宠",
+      "coverUrl": "/demo/covers/pet-sticker.png",
+      "requiredImageCount": 1
+    },
+    {
+      "id": "pet-duo",
+      "title": "双宠合影",
+      "categoryCode": "pets",
+      "categoryName": "萌宠",
+      "coverUrl": "/demo/covers/pet-duo.png",
+      "requiredImageCount": 2
+    }
+  ]
+}

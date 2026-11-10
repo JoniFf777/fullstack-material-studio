@@ -1,0 +1,21 @@
+{
+  "id": 101,
+  "templateId": "travel-postcard",
+  "templateTitle": "旅行明信片",
+  "coverUrl": "/demo/covers/travel-postcard.png",
+  "status": "PENDING",
+  "stage": null,
+  "failedStage": null,
+  "errorCode": null,
+  "errorMessage": null,
+  "resultUrl": null,
+  "materials": [
+    { "slotIndex": 0, "materialId": 11, "url": "/api/materials/11/content" },
+    { "slotIndex": 1, "materialId": 12, "url": "/api/materials/12/content" }
+  ],
+  "steps": [],
+  "createdAt": "2026-11-10T08:31:00.000Z",
+  "startedAt": null,
+  "finishedAt": null,
+  "updatedAt": "2026-11-10T08:31:00.000Z"
+}

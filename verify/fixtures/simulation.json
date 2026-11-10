@@ -1,0 +1,9 @@
+{
+  "failStage": "NONE",
+  "delaysMs": {
+    "MATERIAL_CHECK": 1500,
+    "GENERATING": 4000,
+    "RESULT_ASSEMBLY": 1500
+  },
+  "queryOutage": false
+}

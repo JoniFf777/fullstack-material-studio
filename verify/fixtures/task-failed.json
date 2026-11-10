@@ -1,0 +1,36 @@
+{
+  "id": 102,
+  "templateId": "pet-duo",
+  "templateTitle": "双宠合影",
+  "coverUrl": "/demo/covers/pet-duo.png",
+  "status": "FAILED",
+  "stage": "GENERATING",
+  "failedStage": "GENERATING",
+  "errorCode": "SIMULATED_FAILURE",
+  "errorMessage": "模拟生成失败：生成服务返回错误（模拟注入）",
+  "resultUrl": null,
+  "materials": [
+    { "slotIndex": 0, "materialId": 13, "url": "/api/materials/13/content" },
+    { "slotIndex": 1, "materialId": 14, "url": "/api/materials/14/content" }
+  ],
+  "steps": [
+    {
+      "stage": "MATERIAL_CHECK",
+      "status": "SUCCEEDED",
+      "startedAt": "2026-11-10T08:35:00.013Z",
+      "finishedAt": "2026-11-10T08:35:01.520Z",
+      "message": "已检查 2 张图片"
+    },
+    {
+      "stage": "GENERATING",
+      "status": "FAILED",
+      "startedAt": "2026-11-10T08:35:01.525Z",
+      "finishedAt": "2026-11-10T08:35:05.531Z",
+      "message": "模拟生成失败：生成服务返回错误（模拟注入）"
+    }
+  ],
+  "createdAt": "2026-11-10T08:35:00.000Z",
+  "startedAt": "2026-11-10T08:35:00.010Z",
+  "finishedAt": "2026-11-10T08:35:05.533Z",
+  "updatedAt": "2026-11-10T08:35:05.533Z"
+}
