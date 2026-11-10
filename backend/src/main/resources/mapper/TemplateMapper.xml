@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiaoying.studio.template.TemplateMapper">
+  <select id="categories" resultType="com.xiaoying.studio.template.CategoryDto">
+    SELECT c.code, c.name, COUNT(t.id) AS template_count
+    FROM template_category c LEFT JOIN template t ON t.category_code=c.code AND t.enabled=1
+    GROUP BY c.code,c.name,c.sort_order ORDER BY c.sort_order
+  </select>
+  <sql id="columns">t.*, c.name AS category_name</sql>
+  <select id="list" resultType="com.xiaoying.studio.template.TemplateRow">
+    SELECT <include refid="columns"/> FROM template t JOIN template_category c ON c.code=t.category_code
+    WHERE t.enabled=1
+    <if test="category != null">AND t.category_code=#{category}</if>
+    ORDER BY c.sort_order,t.sort_order
+  </select>
+  <select id="findEnabled" resultType="com.xiaoying.studio.template.TemplateRow">
+    SELECT <include refid="columns"/> FROM template t JOIN template_category c ON c.code=t.category_code
+    WHERE t.id=#{id} AND t.enabled=1
+  </select>
+</mapper>
