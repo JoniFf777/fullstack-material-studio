@@ -11,10 +11,15 @@
 - 保留 `AGENTS.md`：`next dev` 会自动重新生成它，提交进仓库能保持工作区干净。
 - Vitest 5 把 vite 声明为 peer 依赖，所以显式安装了 vite 8；路径别名直接写在 `vitest.config.mts` 里，没有引入额外插件。
 - Next 的匿名遥测：Dockerfile 和 CI 里设置 `NEXT_TELEMETRY_DISABLED=1`，不修改开发机的全局配置。
+- 响应校验用手写的小型守卫组合子（`lib/api/validate.ts`），没有引入 zod：只检查前端用到的字段和枚举，出错时抛 `ContractError` 并指出字段路径（例如 `$.status`）。
+- 401 只有在 code 为 `UNAUTHENTICATED` 时才触发"会话失效"流程；登录失败的 401 `INVALID_CREDENTIALS` 只在表单里提示。
+- X-User-Id 检查（P1）跳过账号接口（me / login / register / logout），避免切换账号时 me 自己触发重置循环。
+- 测试读取 `../verify/fixtures`：jsdom 环境里 `import.meta.url` 不是 `file:` 地址，所以夹具目录在 `vitest.config.mts`（Node 环境）里算好，通过 `VERIFY_FIXTURE_DIR` 传给测试。
 
 ## 阶段验收
 
 - F0：`npm run lint`、`npm run typecheck`、`npm run build` 通过，生成 `.next/standalone/server.js`。
+- F1：`apiClient.test.ts`（10 项）和 `fixtures.test.ts`（15 项，13 个夹具全部通过前端校验）通过；lint、typecheck 通过。
 
 ## 问题记录
 
