@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: studio
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3307}/${DB_NAME:material_studio}?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USER:studio}
+    password: ${DB_PASSWORD:studio_pass}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+server:
+  shutdown: graceful
+  tomcat:
+    max-swallow-size: 20MB
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+studio:
+  storage-root: ${STORAGE_ROOT:./data}
+  task-workers: ${TASK_WORKERS:2}
+  dev-api-enabled: ${DEV_API_ENABLED:false}
+  session-ttl-hours: ${SESSION_TTL_HOURS:168}
+  session-cookie-secure: ${SESSION_COOKIE_SECURE:false}
+  material-min-dimension: ${MATERIAL_MIN_DIMENSION:64}
+  simulation:
+    fail-stage: ${SIM_FAIL_STAGE:NONE}
+    material-check-ms: ${SIM_DELAY_MATERIAL_CHECK_MS:1500}
+    generating-ms: ${SIM_DELAY_GENERATING_MS:4000}
+    result-assembly-ms: ${SIM_DELAY_RESULT_ASSEMBLY_MS:1500}

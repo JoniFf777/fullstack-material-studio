@@ -1,0 +1,2 @@
+studio:
+  dev-api-enabled: ${DEV_API_ENABLED:true}
