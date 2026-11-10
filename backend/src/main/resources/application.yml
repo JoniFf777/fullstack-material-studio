@@ -13,6 +13,9 @@ server:
   shutdown: graceful
   tomcat:
     max-swallow-size: 20MB
+logging:
+  pattern:
+    level: "%5p [taskId:%X{taskId:-}]"
 management:
   endpoint:
     health:

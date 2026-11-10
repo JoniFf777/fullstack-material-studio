@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiaoying.studio.task.TaskStepMapper">
+  <insert id="insertRunning">
+    INSERT INTO generation_task_step(task_id,stage,status,started_at) VALUES(#{id},#{stage},'RUNNING',#{now})
+  </insert>
+  <update id="complete">
+    UPDATE generation_task_step s JOIN generation_task t ON t.id=s.task_id
+    SET s.status='SUCCEEDED',s.finished_at=#{now},s.message=#{message}
+    WHERE s.task_id=#{id} AND s.stage=#{stage} AND s.status='RUNNING' AND t.status='PROCESSING' AND t.stage=#{stage}
+  </update>
+  <update id="fail">
+    UPDATE generation_task_step s JOIN generation_task t ON t.id=s.task_id
+    SET s.status='FAILED',s.finished_at=#{now},s.message=#{message}
+    WHERE s.task_id=#{id} AND s.stage=#{stage} AND s.status='RUNNING' AND t.status='FAILED' AND t.failed_stage=#{stage}
+  </update>
+  <update id="interruptRunning">
+    UPDATE generation_task_step s JOIN generation_task t ON t.id=s.task_id
+    SET s.status='FAILED',s.finished_at=#{now},s.message='服务重启，步骤被中断'
+    WHERE s.status='RUNNING' AND t.status='FAILED' AND t.error_code='INTERRUPTED'
+  </update>
+  <select id="forTasks" resultType="com.xiaoying.studio.task.TaskStepRow">
+    SELECT s.* FROM generation_task_step s JOIN generation_task t ON t.id=s.task_id
+    WHERE t.user_id=#{userId} AND s.task_id IN
+    <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    ORDER BY s.id
+  </select>
+</mapper>

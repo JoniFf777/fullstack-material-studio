@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiaoying.studio.task.TaskMaterialMapper">
+  <insert id="insert">INSERT INTO generation_task_material(task_id,slot_index,material_id) VALUES(#{taskId},#{slot},#{materialId})</insert>
+  <select id="forTasks" resultType="com.xiaoying.studio.task.TaskMaterialRow">
+    SELECT tm.* FROM generation_task_material tm JOIN generation_task t ON t.id=tm.task_id
+      JOIN material m ON m.id=tm.material_id AND m.user_id=t.user_id
+    WHERE t.user_id=#{userId} AND tm.task_id IN
+    <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    ORDER BY tm.task_id,tm.slot_index
+  </select>
+  <select id="forWorker" resultType="com.xiaoying.studio.material.MaterialRow">
+    SELECT m.* FROM generation_task_material tm JOIN material m ON m.id=tm.material_id
+    WHERE tm.task_id=#{taskId} AND m.user_id=#{userId} ORDER BY tm.slot_index
+  </select>
+</mapper>

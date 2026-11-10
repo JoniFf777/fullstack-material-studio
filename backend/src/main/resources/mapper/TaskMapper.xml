@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiaoying.studio.task.TaskMapper">
+  <sql id="taskSelect">SELECT t.*,p.title AS template_title,p.cover_url FROM generation_task t JOIN template p ON p.id=t.template_id</sql>
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO generation_task(user_id,template_id,status,sim_plan,client_request_id,created_at,updated_at)
+    VALUES(#{userId},#{templateId},'PENDING',#{simPlan},#{clientRequestId},#{createdAt},#{updatedAt})
+  </insert>
+  <select id="owned" resultType="com.xiaoying.studio.task.TaskRow"><include refid="taskSelect"/> WHERE t.id=#{id} AND t.user_id=#{userId}</select>
+  <select id="forWorker" resultType="com.xiaoying.studio.task.TaskRow"><include refid="taskSelect"/> WHERE t.id=#{id}</select>
+  <select id="byRequest" resultType="com.xiaoying.studio.task.TaskRow"><include refid="taskSelect"/> WHERE t.user_id=#{userId} AND t.client_request_id=#{key}</select>
+  <select id="list" resultType="com.xiaoying.studio.task.TaskRow">
+    <include refid="taskSelect"/> WHERE t.user_id=#{userId}
+    <if test="templateId != null">AND t.template_id=#{templateId}</if>
+    ORDER BY t.id DESC LIMIT #{limit}
+  </select>
+  <select id="pending" resultType="long">SELECT id FROM generation_task WHERE status='PENDING' ORDER BY id</select>
+  <update id="claim">
+    UPDATE generation_task SET status='PROCESSING',started_at=#{now},updated_at=#{now} WHERE id=#{id} AND status='PENDING'
+  </update>
+  <update id="enterStage">
+    UPDATE generation_task SET stage=#{stage},updated_at=#{now} WHERE id=#{id} AND status='PROCESSING'
+      AND ((stage IS NULL AND #{stage}='MATERIAL_CHECK')
+        OR (stage='MATERIAL_CHECK' AND #{stage}='GENERATING')
+        OR (stage='GENERATING' AND #{stage}='RESULT_ASSEMBLY'))
+  </update>
+  <update id="succeed">
+    UPDATE generation_task SET status='SUCCEEDED',result_key=#{resultKey},finished_at=#{now},updated_at=#{now}
+    WHERE id=#{id} AND status='PROCESSING' AND stage='RESULT_ASSEMBLY'
+      AND EXISTS (SELECT 1 FROM generation_task_step s WHERE s.task_id=#{id} AND s.stage='RESULT_ASSEMBLY' AND s.status='SUCCEEDED')
+  </update>
+  <update id="fail">
+    UPDATE generation_task SET status='FAILED',stage=#{stage},failed_stage=#{stage},error_code=#{code},error_message=#{message},
+      finished_at=#{now},updated_at=#{now}
+    WHERE id=#{id} AND status IN ('PENDING','PROCESSING') AND ((stage IS NULL AND #{stage} IS NULL) OR stage=#{stage})
+  </update>
+  <update id="interruptProcessing">
+    UPDATE generation_task SET status='FAILED',failed_stage=stage,error_code='INTERRUPTED',
+      error_message='服务重启，任务执行被中断，请重新提交',finished_at=#{now},updated_at=#{now} WHERE status='PROCESSING'
+  </update>
+</mapper>
