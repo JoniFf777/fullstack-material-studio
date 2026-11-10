@@ -11,6 +11,7 @@
 ## 阶段验收
 
 - B0：`mvn test` 3 项全部通过，包含真实 Docker/MySQL 的 `HealthIT`；local profile 的 `/actuator/health` 实测为 `{"status":"UP"}`。Wrapper 下载慢，按约定使用本机 Maven 3.9.9，未修改仓库镜像配置。
+- B1：`mvn test` 4 项全部通过；local Flyway V1/V2 迁移成功，SQL 实测 5 分类 / 9 模板 / 2 用户；`smoke --self-check` 40 项全过、无提示。样例大图 1,794,725 字节，小图分别 35,298 / 28,549 字节。
 
 ## 问题记录
 
