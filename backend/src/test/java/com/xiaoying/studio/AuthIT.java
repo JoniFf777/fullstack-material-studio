@@ -50,4 +50,19 @@ class AuthIT extends AbstractIntegrationTest {
         mvc.perform(get("/api/auth/me").cookie(cookie)).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
+    @Test void unicodePasswordAtContractMaximumCanRegisterAndLoginWithoutTruncation() throws Exception {
+        String username="u"+java.util.UUID.randomUUID().toString().replace("-", "").substring(0,17);
+        String password="密".repeat(64);
+        String body="{\"username\":\""+username+"\",\"password\":\""+password+"\"}";
+        mvc.perform(post("/api/auth/register").contentType("application/json").content(body))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/auth/login").contentType("application/json").content(body))
+                .andExpect(status().isOk());
+        String wrong="{\"username\":\""+username+"\",\"password\":\""+"密".repeat(63)+"码\"}";
+        mvc.perform(post("/api/auth/login").contentType("application/json").content(wrong))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+        mvc.perform(post("/api/auth/login").contentType("application/json")
+                .content("{\"username\":\"demo\",\"password\":\""+password+"\"}"))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
 }

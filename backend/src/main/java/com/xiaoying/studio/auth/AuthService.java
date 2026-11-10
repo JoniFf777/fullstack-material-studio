@@ -6,7 +6,6 @@ import java.util.Base64;
 import com.xiaoying.studio.common.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,12 +15,12 @@ public class AuthService {
     private final SessionMapper sessions;
     private final Clock clock;
     private final long ttlHours;
-    private final BCryptPasswordEncoder passwords = new BCryptPasswordEncoder(10);
+    private final PasswordHasher passwords;
     private final SecureRandom random = new SecureRandom();
     public record AuthResult(UserDto user, String token) {}
-    public AuthService(UserMapper users, SessionMapper sessions, Clock clock,
+    public AuthService(UserMapper users, SessionMapper sessions, Clock clock, PasswordHasher passwords,
                        @Value("${studio.session-ttl-hours}") long ttlHours) {
-        this.users=users; this.sessions=sessions; this.clock=clock; this.ttlHours=ttlHours;
+        this.users=users; this.sessions=sessions; this.clock=clock; this.passwords=passwords; this.ttlHours=ttlHours;
     }
     @Transactional
     public AuthResult register(String username, String password, String displayName) {
