@@ -256,11 +256,11 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 |---|---|---|
 | 后端单元测试 | `TaskPipelineTest`：三步按顺序执行；任一步失败后后续步骤不执行、记录失败阶段和原因；状态写入异常时不误判为业务失败。另有模拟器、模拟配置、文件头识别、种子密码等 | `./mvnw test` |
 | 后端集成测试（Testcontainers + MySQL 8.4） | `TaskFlowIT`（受理不等待、指定阶段失败、查询不推进、快照隔离、查询故障、用户隔离、多任务结果互不相同）、`TaskStateGuardIT`（终态不能被改回）、`TaskSubmissionIT`（校验与幂等，含并发）、`TaskRecoveryIT`（重启恢复）、`AuthIT`、`MaterialUploadIT`、`TemplateIT`、`ContractShapeIT` 等，共 59 项 | 同上 |
-| 前端单元与组件测试（Vitest） | `taskTracking`（多任务不串扰、任务结束即停止轮询、查询异常不显示为失败、卸载时取消请求、刷新恢复）、`taskView`、`mergeTask`（终态不回退）、`createPanel`（按钮状态、Idempotency-Key 重试复用）、`uploadSlotsReducer`、`validateFile`、`apiClient`、`fixtures`、`authReset`，共 60 项 | `npm test` |
+| 前端单元与组件测试（Vitest） | `taskTracking`（多任务不串扰、任务结束即停止轮询、查询异常不显示为失败、卸载时取消请求、刷新恢复、浏览器离线时同样提示）、`taskView`、`mergeTask`（终态不回退）、`createPanel`（按钮状态、Idempotency-Key 重试复用）、`uploadSlotsReducer`、`validateFile`、`apiClient`、`fixtures`、`authReset`，共 61 项 | `npm test` |
 | 契约一致性 | `verify/fixtures/` 是接口响应样例；前端测试用它当假响应，后端 `ContractShapeIT` 和冒烟脚本用它比对字段集合 | — |
 | API 冒烟 | `verify/smoke.mjs`：模板、账号、上传、任务（受理耗时、阶段只前进、指定阶段失败、快照隔离、查询故障、真实素材检查失败、幂等、校验）、用户隔离，共 69 项 | `node verify/smoke.mjs` |
-| 人工验收 | `verify/CHECKLIST.md`：S01–S13 演示场景、键盘与小屏走查 | — |
-| CI | `.github/workflows/ci.yml`：push 和 pull request 时运行 frontend（lint、typecheck、test、build）、backend（`./mvnw verify`，含 Testcontainers）、compose（从零构建启动后经 :3000 跑冒烟）三个 job。仓库目前只在本地，还没有在 GitHub 上跑过；三个 job 做的事都在本机用同样的命令跑通过：前端 lint、typecheck、60 项测试和构建，后端 59 项测试，从零构建后的冒烟 69 项。 | — |
+| 人工验收 | `verify/CHECKLIST.md`：S01–S13 演示场景、键盘与小屏走查。2026-11-11 的结果已经填进去：除 V（和试题截图对照）、E1（截图）以外都通过；S09 第 3 步第一次没通过，修复后复测通过 | — |
+| CI | `.github/workflows/ci.yml`：push 和 pull request 时运行 frontend（lint、typecheck、test、build）、backend（`./mvnw verify`，含 Testcontainers）、compose（从零构建启动后经 :3000 跑冒烟）三个 job。仓库目前只在本地，还没有在 GitHub 上跑过；三个 job 做的事都在本机用同样的命令跑通过：前端 lint、typecheck、61 项测试和构建，后端 59 项测试，从零构建后的冒烟 69 项。 | — |
 
 ## 12. 完成情况与已知限制
 
@@ -282,6 +282,7 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 - 前端没有浏览器端到端测试，用组件测试、API 冒烟和人工清单代替；没有压力测试。
 - 没有 Docker 的环境里，Testcontainers 集成测试会被跳过（CI 中会真正执行）。
 - 经过前端（:3000）直接上传超过 10MB 的请求时，Tomcat 返回 413 后会主动断开连接（Tomcat 对 413 的固定行为），Next 的转发会等到 30 秒超时才返回 500；直连后端（:8080）会正确返回 413 `FILE_TOO_LARGE`。正常使用时，前端会先按模板上限（最大 5MB）拦下文件，不会走到这里；10MB 以内的上传经过转发是完整的（已用 9.5MB 文件校验过字节一致）。
+- 后端抢占任务（PENDING → PROCESSING）和写入第一个阶段是两条语句，中间约 10–20ms 内查询会拿到 PROCESSING 但 stage 为空，和契约 03 的描述不完全一致。前端这时显示不带阶段名的"处理中"，下一次轮询（1.5 秒后）就会带上阶段名。
 
 实际投入：**4h**
 
@@ -305,7 +306,7 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 
 **生成和修改代码。** 一个阶段一个提交，提交信息以阶段号开头，`git log` 里能看到整个推进过程。I0 的规格和验证资产在后端开工前就写好了，但等到开始写前端时才第一次提交，所以在 `git log` 里排在 B0–B7 之后。核心逻辑测试先行：后端 B5 先写 `TaskPipelineTest` 和 `TaskStateGuardIT`，前端 F5 先写任务跟踪的测试，都是确认测试失败之后再写实现。后端的问题由 Claude 写成修复提示词，我转给 Codex；前端的问题由 Claude 直接改。需求有变化时，先改契约和检查，再改实现。
 
-**验证。** 验证资产比业务代码先写：I0 阶段就有了契约样例、冒烟脚本 `verify/smoke.mjs` 和人工清单 `verify/CHECKLIST.md`。为了确认冒烟脚本本身可靠，Claude 还写了一个临时的假后端，在里面注入 14 种典型缺陷，脚本每一种都能查出来。Codex 写完后端后，Claude 独立复核了一遍：跑全部测试（59 项）和冒烟（69 项），再对照红线逐条看代码。前端每个阶段都跑 lint、typecheck 和 Vitest，并在浏览器里实际操作。最后从零构建（`docker compose down -v`，再 `docker compose up --build --wait`）并跑冒烟。从零构建和冒烟我自己也跑了一遍，并按清单走查。
+**验证。** 验证资产比业务代码先写：I0 阶段就有了契约样例、冒烟脚本 `verify/smoke.mjs` 和人工清单 `verify/CHECKLIST.md`。为了确认冒烟脚本本身可靠，Claude 还写了一个临时的假后端，在里面注入 14 种典型缺陷，脚本每一种都能查出来。Codex 写完后端后，Claude 独立复核了一遍：跑全部测试（59 项）和冒烟（69 项），再对照红线逐条看代码。前端每个阶段都跑 lint、typecheck 和 Vitest，并在浏览器里实际操作。最后从零构建（`docker compose down -v`，再 `docker compose up --build --wait`）并跑冒烟。从零构建和冒烟我自己也跑了一遍，并按清单走查过；清单里记录的结果是 Claude 在浏览器里逐项复测后填的。
 
 **一个具体的例子：切换账号后看到了上一个用户的结果图。** 联调时，Claude 在浏览器里按 S11 测切换账号：先用 demo 看一张结果图，切换到 alice 后，在地址栏打开 demo 那个任务的结果地址。这里应该是 404，页面却显示出了 demo 的图。绕过缓存再请求一次，服务端返回的确实是 404，说明权限检查没有问题，图片来自浏览器缓存。原因是私有图片的响应带了 `Cache-Control: private, max-age=86400`，允许浏览器缓存一天，却没有带 `Vary: Cookie`，于是同一个 URL 的缓存在不同的登录会话之间被复用了。冒烟脚本和集成测试都不经过浏览器缓存，所以之前一直没有暴露。
 
@@ -317,6 +318,7 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 - 经过 Next 转发上传超过 10MB 的文件时，Tomcat 返回 413 后会断开连接，Next 要等到 30 秒超时才返回 500。评估后没有修：前端会先按模板上限（最大 5MB）拦下文件，正常使用走不到这里，所以写进了已知限制。
 - AI 也会犯低级错误。有一次 Claude 用 Windows PowerShell 5.1 改文件，把 UTF-8 的中文写成了乱码，检查改动时发现，用 git 还原后换了编辑方式。
 - 最后走查时，Claude 帮我测清单里的命令，发现 PowerShell 的 `Invoke-RestMethod` 访问 `localhost:8080` 会卡到超时：它会先尝试 IPv6，而在这台机器上，经 IPv6 访问 Docker 映射出来的端口会一直挂着。于是把文档里的 PowerShell 命令改成了 `127.0.0.1`。
+- 复测清单时，Claude 发现浏览器离线（开发者工具切到 Offline）时，处理中的卡片会一直停在"处理中"，没有"状态更新失败"的提示，联网后才突然更新。原因是 TanStack Query 默认在离线时暂停查询，不会进入出错状态。它先补了一个能复现的测试，再改成离线时照常请求、失败后走同样的提示，联网后自动刷新（F8，`frontend/DECISIONS.md` 的问题记录）。修的过程中，测试又暴露出一个细节：这样设置后，TanStack Query 会把"联网后自动刷新"的默认值关掉，需要显式打开。同一轮还发现，提交后卡片会先显示约 1.5 秒不带阶段名的"处理中"，原因在后端，影响很小，写进了已知限制。
 
 **我自己做的部分：** 定分工和节奏，确认方案；准备本机环境（JDK 21、Docker Desktop）；在两个 AI 之间传递提示词；看每个阶段的结果，决定是否进入下一阶段；最后自己从零构建、跑冒烟、按清单走查，确认没问题后再提交。
 
@@ -328,4 +330,4 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 
 ---
 
-验收 commit：**main 分支的最新提交**。最后一次改代码的提交是 `9fd1946`（B8：私有图片加 `Vary: Cookie`），之后只改了文档；从零构建、测试和冒烟都在它之后重新跑过。
+验收 commit：**main 分支的最新提交**。最后一次改代码的提交是 `5698b78`（F8：浏览器离线时也显示查询异常的提示），之后只改了文档。F8 之后重新跑了前端 61 项测试、lint 和 typecheck，重建前端镜像后跑了经 :3000 的 69 项冒烟，并在浏览器里复测了 S09；最近一次从零构建（`docker compose down -v` 后 `up --build --wait`）是在 B8 之后、F8 之前。
