@@ -1,4 +1,5 @@
-# 目前只有 MySQL（I0）。I1 会加入 backend 和 frontend，见 spec/07 §6。
+# 一键启动：docker compose up --build（MySQL → 后端 → 前端，按健康检查依次就绪）。
+# 浏览器访问 http://localhost:3000；开发接口在 http://localhost:8080/api/dev/simulation。
 # 每个变量都有默认值，没有 .env 也能启动；要修改时复制 .env.example 为 .env。
 # 固定项目名，网络名因此固定为 fullstack-material-studio_default（spec/06 §10 的命令会用到）。
 name: fullstack-material-studio
@@ -30,5 +31,63 @@ services:
       retries: 40
       start_period: 20s
 
+  backend:
+    build:
+      context: ./backend
+    image: material-studio-backend:${IMAGE_TAG:-local}
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-material_studio}
+      DB_USER: ${DB_USER:-studio}
+      DB_PASSWORD: ${DB_PASSWORD:-studio_pass}
+      STORAGE_ROOT: /data
+      TASK_WORKERS: ${TASK_WORKERS:-2}
+      SIM_FAIL_STAGE: ${SIM_FAIL_STAGE:-NONE}
+      SIM_DELAY_MATERIAL_CHECK_MS: ${SIM_DELAY_MATERIAL_CHECK_MS:-1500}
+      SIM_DELAY_GENERATING_MS: ${SIM_DELAY_GENERATING_MS:-4000}
+      SIM_DELAY_RESULT_ASSEMBLY_MS: ${SIM_DELAY_RESULT_ASSEMBLY_MS:-1500}
+      # 开发接口（模拟控制），方便演示和评审；生产环境必须设为 false
+      DEV_API_ENABLED: ${DEV_API_ENABLED:-true}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      MATERIAL_MIN_DIMENSION: ${MATERIAL_MIN_DIMENSION:-64}
+    ports:
+      - "${BACKEND_HOST_PORT:-8080}:8080"
+    volumes:
+      - app-data:/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    # 停机时线程池最多等 15 秒；给足时间，避免被强杀
+    stop_grace_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_INTERNAL_URL: http://backend:8080
+        NPM_REGISTRY: ${NPM_REGISTRY:-}
+    image: material-studio-frontend:${IMAGE_TAG:-local}
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
 volumes:
   mysql-data:
+  # 素材、中间产物和结果图（STORAGE_ROOT=/data），重启容器后仍然保留
+  app-data:
