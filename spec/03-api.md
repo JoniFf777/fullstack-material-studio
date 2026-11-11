@@ -230,7 +230,7 @@ export interface ApiErrorBody {
 
 **9. 素材内容** `GET /api/materials/{id}/content`
 
-- 200：图片字节。`Content-Type` 为记录的 MIME；`Cache-Control: private, max-age=86400`
+- 200：图片字节。`Content-Type` 为记录的 MIME；`Cache-Control: private, max-age=86400`；`Vary: Cookie`（浏览器缓存按登录会话区分，同一个浏览器切换账号后不会读到上一个用户缓存的图片）
 - 错误：404 `MATERIAL_NOT_FOUND`（素材不存在或不属于当前用户）
 
 ### 4.4 任务
@@ -279,7 +279,7 @@ export interface ApiErrorBody {
 
 **13. 结果图片** `GET /api/tasks/{id}/result`
 
-- 200：`image/jpeg`，`Cache-Control: private, max-age=86400`
+- 200：`image/jpeg`，`Cache-Control: private, max-age=86400`，`Vary: Cookie`（同上）
 - 错误：404 `TASK_RESULT_NOT_FOUND`（任务没有成功，或不属于当前用户）
 - 不受 queryOutage 影响
 

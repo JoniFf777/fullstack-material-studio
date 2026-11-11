@@ -594,9 +594,13 @@ function expectFailedAt(task, stage, code) {
   ensureEqual(task.resultUrl, null, 'resultUrl');
 }
 
-function softCacheCheck(res) {
+// 私有图片：只能由浏览器私有缓存保存，并且缓存要按登录会话区分（Vary: Cookie），
+// 否则同一个浏览器切换账号后，新用户会从缓存里读到上一个用户的图片
+function expectPrivateCache(res) {
   const cc = res.headers.get('cache-control') ?? '';
-  if (!/\bprivate\b/i.test(cc)) warn(`${res.path} 的 Cache-Control 应包含 private（03 §4.3），实际 ${show(cc)}`);
+  const vary = res.headers.get('vary') ?? '';
+  ensure(/\bprivate\b/i.test(cc), `${res.path} 的 Cache-Control 应包含 private（03 §4.3），实际 ${show(cc)}`);
+  ensure(/(^|[\s,])cookie($|[\s,])/i.test(vary) || vary.trim() === '*', `${res.path} 应带 Vary: Cookie（03 §4.3），实际 Vary=${show(vary)}`);
 }
 
 // ───────────────────────── 业务辅助 ─────────────────────────
@@ -899,7 +903,7 @@ async function sectionUpload(ctx) {
     expectStatus(res, 200);
     ensure(res.contentType.startsWith('image/jpeg'), `Content-Type 应为 image/jpeg，实际 ${show(res.contentType)}`);
     ensureEqual(sha256(res.bytes), sha256(await ctx.sample('photo-1.jpg')), '内容的 sha256');
-    softCacheCheck(res);
+    expectPrivateCache(res);
   });
 
   await check('别人取素材内容、取不存在的素材都返回 404 MATERIAL_NOT_FOUND', async () => {
@@ -989,7 +993,7 @@ async function sectionTasks(ctx) {
     const info = imageInfo(res.bytes);
     ensureEqual(info.type, 'jpeg', '结果文件的文件头');
     if (info.width !== RESULT_SIZE.width || info.height !== RESULT_SIZE.height) warn(`结果图是 ${info.width}×${info.height}，spec/02 §5.4 约定为 720×960`);
-    softCacheCheck(res);
+    expectPrivateCache(res);
     ctx.resultHashes.set(succeeded.id, sha256(res.bytes));
     return `${res.bytes.length} 字节`;
   });
