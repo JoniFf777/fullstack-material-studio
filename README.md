@@ -260,7 +260,7 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 | 契约一致性 | `verify/fixtures/` 是接口响应样例；前端测试用它当假响应，后端 `ContractShapeIT` 和冒烟脚本用它比对字段集合 | — |
 | API 冒烟 | `verify/smoke.mjs`：模板、账号、上传、任务（受理耗时、阶段只前进、指定阶段失败、快照隔离、查询故障、真实素材检查失败、幂等、校验）、用户隔离，共 69 项 | `node verify/smoke.mjs` |
 | 人工验收 | `verify/CHECKLIST.md`：S01–S13 演示场景、键盘与小屏走查。2026-11-11 的结果已经填进去：除 V（和试题截图对照）、E1（截图）以外都通过；S09 第 3 步第一次没通过，修复后复测通过 | — |
-| CI | `.github/workflows/ci.yml`：push 和 pull request 时运行 frontend（lint、typecheck、test、build）、backend（`./mvnw verify`，含 Testcontainers）、compose（从零构建启动后经 :3000 跑冒烟）三个 job。仓库目前只在本地，还没有在 GitHub 上跑过；三个 job 做的事都在本机用同样的命令跑通过：前端 lint、typecheck、61 项测试和构建，后端 59 项测试，从零构建后的冒烟 69 项。 | — |
+| CI | `.github/workflows/ci.yml`：push 和 pull request 时运行 frontend（lint、typecheck、test、build）、backend（`./mvnw verify`，含 Testcontainers）、compose（从零构建启动后经 :3000 跑冒烟）三个 job。每次 push 的运行记录见 [GitHub Actions](https://github.com/JoniFf777/fullstack-material-studio/actions/workflows/ci.yml)。推送之前，三个 job 做的事都在本机用同样的命令跑通过：前端 lint、typecheck、61 项测试和构建，后端 59 项测试，从零构建后的冒烟 69 项。 | — |
 
 ## 12. 完成情况与已知限制
 
