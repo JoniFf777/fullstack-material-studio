@@ -28,7 +28,10 @@ class TaskFlowIT extends AbstractTaskIntegrationTest {
             assertFalse(step.finishedAt().isBefore(step.startedAt()));
             if(i>0)assertFalse(step.startedAt().isBefore(done.steps().get(i-1).finishedAt()));
         }
-        mvc.perform(get(done.resultUrl()).cookie(user)).andExpect(status().isOk()).andExpect(content().contentType("image/jpeg"));
+        mvc.perform(get(done.resultUrl()).cookie(user)).andExpect(status().isOk())
+                .andExpect(content().contentType("image/jpeg"))
+                .andExpect(header().string("Cache-Control", "private, max-age=86400"))
+                .andExpect(header().string("Vary", "Cookie"));
     }
     @ParameterizedTest @EnumSource(TaskStage.class)
     void failureStopsLaterStagesAndQueriesNeverChangeTerminalState(TaskStage failure) throws Exception {

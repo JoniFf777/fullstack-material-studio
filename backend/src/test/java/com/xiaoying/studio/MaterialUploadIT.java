@@ -20,7 +20,9 @@ class MaterialUploadIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.mimeType").value("image/png")).andReturn();
         long id=json.readTree(result.getResponse().getContentAsString()).path("id").asLong();
         mvc.perform(get("/api/materials/"+id+"/content").cookie(user)).andExpect(status().isOk())
-                .andExpect(header().string("Cache-Control","private, max-age=86400")).andExpect(content().bytes(bytes));
+                .andExpect(header().string("Cache-Control", "private, max-age=86400"))
+                .andExpect(header().string("Vary", "Cookie"))
+                .andExpect(content().bytes(bytes));
         mvc.perform(get("/api/materials/"+id+"/content").cookie(TestUsers.register(mvc))).andExpect(status().isNotFound());
     }
     @Test void validatesBeforePersisting() throws Exception {

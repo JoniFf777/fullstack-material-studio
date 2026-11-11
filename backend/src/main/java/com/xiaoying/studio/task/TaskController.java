@@ -28,6 +28,7 @@ public class TaskController {
         var task=query.result(id,user.id());
         if(!storage.exists(task.getResultKey()))throw new ApiException(404,ErrorCode.TASK_RESULT_NOT_FOUND,"结果不存在");
         return ResponseEntity.ok().contentType(MediaType.IMAGE_JPEG).header(HttpHeaders.CACHE_CONTROL,"private, max-age=86400")
+                .varyBy(HttpHeaders.COOKIE)
                 .body(new FileSystemResource(storage.resolve(task.getResultKey())));
     }
 }

@@ -50,6 +50,7 @@
 - B6：64 位中文密码符合契约字符长度，但 UTF-8 编码为 192 字节，直接 BCrypt 抛出 `password cannot be more than 72 bytes`，注册返回 500。先新增 `AuthIT.unicodePasswordAtContractMaximumCanRegisterAndLoginWithoutTruncation` 确认 201/500 差异，再加入带标记的 SHA-256 → BCrypt 格式和普通 BCrypt 兼容分支。测试同时检查正确密码登录成功、仅末字不同被拒绝、演示账号用超长错误密码也返回 401；全量测试和冒烟均通过。
 - B7：原 `TaskRunner` 会把阶段边界的状态写入异常标记为 INTERNAL_ERROR；`TaskPipeline` 也把完成状态的提交异常纳入了步骤业务错误处理。如果数据库已提交但确认丢失，可能产生“步骤已成功、任务却因该步骤业务失败”的不一致。先新增两个 `TaskPipelineTest` 回归用例，确认 `expected PROCESSING but was FAILED`；随后将完成状态写入移到业务异常捕获范围之外，阶段边界异常保留 PROCESSING 等待恢复。另以 `TaskRecoveryIT.restartBetweenStepsPreservesAlreadyCompletedStep` 验证已结束步骤不被改写。最终 59 项测试和两次全量冒烟均通过。
 - B7 环境：首次拉取官方基础镜像很慢，下载缓存均逐层校验官方 SHA-256 后才导入；未改仓库镜像地址。曾在运行镜像中进行不必要的 `apt-get update`，遭遇上游索引 502/404。确认官方 JRE 镜像已有 curl 后，最终 Dockerfile 直接验证其存在，移除该外部索引依赖。临时缓存不提交。
+- B8 修复前，demo 查看任务 #12 的结果图后切换到 alice，同一浏览器仍从 HTTP 缓存读到 demo 的图片。绕过缓存的请求返回 404 `TASK_RESULT_NOT_FOUND`。`Cache-Control: private, max-age=86400` 允许浏览器缓存一天，缺少 `Vary: Cookie` 时，同一 URL 的缓存条目可以跨会话复用。两个图片接口的 200 响应均返回 `Vary: Cookie` 和 `Cache-Control: private, max-age=86400`。`MaterialUploadIT.validUploadUsesHeaderAndPrivateContent` 和 `TaskFlowIT.acceptanceDoesNotWaitAndReturnsJpeg` 同时断言这两个响应头，修复前均因 `Vary` 缺失而失败。修复后，Maven Wrapper 的 59 项测试全部通过，Compose 重建后经 `:3000` 的 69 项冒烟检查全部通过。修复前已缓存的条目仍可能被复用，直到清除或过期。
 
 ## 运行边界
 

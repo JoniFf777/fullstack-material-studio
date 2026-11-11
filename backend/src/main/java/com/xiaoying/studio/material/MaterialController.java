@@ -19,6 +19,7 @@ public class MaterialController {
         var material=service.content(id,user.id());
         return ResponseEntity.ok().contentType(MediaType.parseMediaType(material.getMimeType()))
                 .header(HttpHeaders.CACHE_CONTROL,"private, max-age=86400")
+                .varyBy(HttpHeaders.COOKIE)
                 .body(new FileSystemResource(storage.resolve(material.getStorageKey())));
     }
 }
