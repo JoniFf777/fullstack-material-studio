@@ -1,13 +1,14 @@
+import { onlineManager } from "@tanstack/react-query";
 import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TaskDto } from "@/lib/api/types";
-import { createFakeApi, delayed, json, type FakeApi } from "@/test/fakeApi";
+import { createFakeApi, delayed, json, networkError, type FakeApi } from "@/test/fakeApi";
 import { taskFixture } from "@/test/fixtures";
 import { renderWithProviders } from "@/test/render";
 import { HistoryPanel } from "./HistoryPanel";
 
-// spec/06 §5.4 taskTracking：多任务不串扰、终态即停、查询异常不等于失败、卸载清理、刷新恢复
+// spec/06 §5.4 taskTracking：多任务不串扰、终态即停、查询异常不等于失败、卸载清理、刷新恢复、浏览器离线
 
 const LIST = "/api/tasks?templateId=travel-postcard&limit=50";
 const POLL = 1500;
@@ -41,6 +42,11 @@ describe("任务跟踪（HistoryPanel + TaskCard）", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     api = createFakeApi();
     api.install();
+  });
+
+  afterEach(() => {
+    // onlineManager 是全局单例，不能把"离线"状态留给后面的测试
+    onlineManager.setOnline(true);
   });
 
   it("① 多任务不串扰：A 显示 A 的结果图，B 显示 B 的失败原因", async () => {
@@ -152,5 +158,28 @@ describe("任务跟踪（HistoryPanel + TaskCard）", () => {
     expect(statusOf(301)).toHaveTextContent("已完成");
     expect(statusOf(302)).toHaveTextContent("已完成");
     expect(api.calls("GET", "/api/tasks/302")).toBe(0);
+  });
+
+  it("⑥ 浏览器离线（开发者工具切到 Offline）：同样显示提示和「重新查询」，不会悄悄停在处理中；联网后自动刷新", async () => {
+    const a = travel("processing", 201);
+    api.on("GET", LIST, json(200, { items: [a] }));
+    api.on("GET", "/api/tasks/201", [json(200, a), networkError(), json(200, travel("succeeded", 201))]);
+
+    renderWithProviders(<HistoryPanel templateId="travel-postcard" />);
+    await screen.findByRole("article", { name: "任务 #201" });
+    await advance(100);
+    expect(statusOf(201)).toHaveTextContent("处理中 · 模拟生成");
+
+    // 浏览器报告离线后，下一次轮询的请求失败，卡片显示查询异常的提示，主文案仍是处理中
+    act(() => onlineManager.setOnline(false));
+    await advance(POLL + 100);
+    expect(within(card(201)).getByRole("alert")).toHaveTextContent("状态更新失败，任务仍在后台处理");
+    expect(statusOf(201)).toHaveTextContent("处理中 · 模拟生成");
+
+    // 联网后自动重新查询，不需要用户操作
+    act(() => onlineManager.setOnline(true));
+    await advance(100);
+    expect(within(card(201)).queryByRole("alert")).toBeNull();
+    expect(statusOf(201)).toHaveTextContent("已完成");
   });
 });

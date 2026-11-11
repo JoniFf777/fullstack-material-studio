@@ -14,6 +14,7 @@ export const POLL_INTERVAL_MS = 1500;
  * 跟踪单个任务（spec/05 §8.2）：
  * - 只跟踪未完成的任务；任务结束就停（refetchInterval 返回 false）
  * - 查询出错（客户端已按默认值重试过一次）时暂停轮询，等用户点"重新查询"、窗口重新聚焦或网络恢复
+ * - 浏览器报告离线时同样按查询出错处理（networkMode: "always"），不会被静默暂停、停在"处理中"
  * - 标签页隐藏时暂停；卡片卸载后没有观察者，轮询停止，进行中的请求通过 signal 取消
  */
 export function useTrackedTask(task: TaskDto) {
@@ -37,6 +38,11 @@ export function useTrackedTask(task: TaskDto) {
       return POLL_INTERVAL_MS;
     },
     refetchIntervalInBackground: false,
+    // 默认的 networkMode "online" 在浏览器离线时只会暂停请求，卡片不会出现"状态更新失败"的提示。
+    // 改为照常请求：失败后走查询异常的处理，联网后自动重新查询。
+    // networkMode 为 "always" 时 refetchOnReconnect 默认变成 false，所以这里显式打开。
+    networkMode: "always",
+    refetchOnReconnect: true,
   });
 
   return {

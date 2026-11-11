@@ -33,4 +33,4 @@
 
 ## 问题记录
 
-（暂无）
+- 人工清单 S09 第 3 步（2026-11-11）：浏览器离线（开发者工具切到 Offline）时，处理中的卡片一直停在"处理中 · 模拟生成"，没有"状态更新失败"的提示；联网后才突然更新。spec/05 §8.2 要求离线和其他请求异常一样提示。根因：TanStack Query 默认的 networkMode 是 "online"，浏览器报告离线后查询被暂停（fetchStatus 为 paused），不会进入 error，卡片也就拿不到查询异常。先在 `taskTracking.test.tsx` 补用例 ⑥（`onlineManager.setOnline(false)` 后下一次轮询的请求失败），确认修复前找不到提示而失败；再给 `useTrackedTask` 设 `networkMode: "always"`。补完后用例仍然失败：联网后没有自动重新查询。原因是 networkMode 为 "always" 时，TanStack Query 把 refetchOnReconnect 的默认值改成 false，所以显式设为 true。全部 61 项测试、lint、typecheck 通过；重建镜像后在浏览器里用同样的方式复测通过。
