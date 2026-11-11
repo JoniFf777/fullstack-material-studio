@@ -14,6 +14,9 @@
 - 响应校验用手写的小型守卫组合子（`lib/api/validate.ts`），没有引入 zod：只检查前端用到的字段和枚举，出错时抛 `ContractError` 并指出字段路径（例如 `$.status`）。
 - 401 只有在 code 为 `UNAUTHENTICATED` 时才触发"会话失效"流程；登录失败的 401 `INVALID_CREDENTIALS` 只在表单里提示。
 - X-User-Id 检查（P1）跳过账号接口（me / login / register / logout），避免切换账号时 me 自己触发重置循环。
+- `package-lock.json` 里的下载地址统一改为 `registry.npmjs.org`。它最初在 npmmirror 源下生成，所有 `resolved` 都指向 npmmirror；npm 只会替换官方源的地址，结果 CI 和评审环境也会被迫从 npmmirror 下载。两个源的 tarball 路径和 integrity 完全相同，只换域名；本机配置了 npmmirror 时 npm 会自动把官方地址替换成配置的源（`replace-registry-host=npmjs`），`npm ci` 已验证。
+- 前端 Dockerfile：deps / build / runtime 三阶段，基于 `node:24-alpine`；`BACKEND_INTERNAL_URL` 作为 build arg（rewrites 在构建时写进产物）；可选 build arg `NPM_REGISTRY`（默认空，用官方源），仓库里不写镜像地址；运行阶段只拷 standalone 产物和 `.next/static`，用 `node` 用户运行。`public/` 目录没有文件，所以不拷贝它。
+- `/dev` 调试页（P1）不需要登录；开发接口关闭时后端对该路径返回 404，页面据此提示"开发接口没有打开"。
 - 测试读取 `../verify/fixtures`：jsdom 环境里 `import.meta.url` 不是 `file:` 地址，所以夹具目录在 `vitest.config.mts`（Node 环境）里算好，通过 `VERIFY_FIXTURE_DIR` 传给测试。
 
 ## 阶段验收
@@ -25,6 +28,7 @@
   - S01：5 个分类、8 个模板；"萌宠"2 个，地址栏为 `?category=pets`；"婚礼"显示空状态；`/templates/wedding-invite` 显示"模板不存在或已下线"；旅行明信片显示"需要 2 张 · JPG / PNG · 每张不超过 5MB"。
   - S02：页面内生成的 JPG 上传后"已就绪"；文本冒充的 .jpg 被服务端拒绝，上传位显示原因和重试按钮；换成 PNG 后按钮变为"立即制作"；提交返回 202，提示"已提交，任务 #64 已进入队列"，上传位清空；迷你头像选 300KB 文件、复古胶片选 PNG，都在前端直接提示，没有发出上传请求。
 - F5（测试先行）：先写 `taskView`、`mergeTask`、`taskTracking` 的测试，用只抛"尚未实现"的空壳确认失败（mergeTask 6 个、taskView 9 个失败，taskTracking 因缺少 HistoryPanel 无法加载）；实现后 20 项全部通过。`createPanel` 的 3 项测试写在 CreatePanel（F4）之后，首次运行即通过。全部 58 项测试、lint、typecheck 通过。S03–S10 的浏览器核对尚未完成。
+- F6：补 `authReset.test.tsx`（P1，2 项）：退出登录时中止进行中的请求、清空 `['u', …]` 缓存、旧任务卡片立即消失并去登录页；会话中途失效（401 UNAUTHENTICATED）走同样的流程。全部 60 项测试通过。
 - 内置浏览器无法操作系统文件选择框，验证时在页面里用 canvas 生成图片，通过 DataTransfer 放进 `<input type="file">` 再触发 change 事件，后面的上传流程与真实选择文件相同。
 
 ## 问题记录
