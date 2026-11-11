@@ -209,7 +209,7 @@ Compose 额外的变量：`DB_ROOT_PASSWORD`、`FRONTEND_HOST_PORT`（3000）、
 
 ## 9. 如何演示
 
-开发接口可以在页面 http://localhost:3000/dev 上操作，也可以用命令（Windows PowerShell 5.1 会吃掉传给 `curl.exe` 的 JSON 引号，所以给出 `Invoke-RestMethod` 写法）：
+开发接口可以在页面 http://localhost:3000/dev 上操作，也可以用命令。Windows PowerShell 5.1 会吃掉传给 `curl.exe` 的 JSON 引号，所以另外给出 `Invoke-RestMethod` 写法；它访问 `localhost` 时会先尝试 IPv6，在部分 Docker Desktop 环境里会卡到超时，所以地址写 `127.0.0.1`：
 
 ```bash
 SIM=http://localhost:8080/api/dev/simulation
@@ -220,7 +220,7 @@ curl -s -X POST $SIM/reset                                                      
 ```
 
 ```powershell
-$sim = 'http://localhost:8080/api/dev/simulation'
+$sim = 'http://127.0.0.1:8080/api/dev/simulation'
 Invoke-RestMethod -Method Patch -Uri $sim -ContentType 'application/json' -Body '{"failStage":"GENERATING"}'
 Invoke-RestMethod -Method Post -Uri "$sim/reset"
 ```
@@ -230,7 +230,7 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 | 成功 | 进入"旅行明信片"，上传 `photo-1.jpg`、`photo-2.jpg`，点"立即制作" | 按钮短暂显示"提交中…"；右侧历史最前面出现新卡片，依次显示 等待处理 → 处理中 · 素材检查 → 模拟生成 → 结果整理 → 已完成；点卡片看大图和每步耗时；`docker compose logs backend` 里能看到每步的 STEP_START / STEP_END |
 | 指定阶段失败 | 设置 `failStage=GENERATING` 后提交 | 卡片停在"失败 · 模拟生成"并显示原因，结果整理为灰色；再提交仍然失败（可重复）；reset 后恢复 |
 | 调整耗时 | 设置 `delaysMs.GENERATING=10000` 后提交 | 模拟生成持续约 10 秒 |
-| 多任务与排队 | `TASK_WORKERS=1 docker compose up -d backend`，连续提交几个任务 | 后提交的任务先显示"等待处理"；各卡片的阶段、原因、结果图互不串扰 |
+| 多任务与排队 | `TASK_WORKERS=1 docker compose up -d backend`（PowerShell 写法和恢复方法见 `verify/CHECKLIST.md` §0.2），连续提交几个任务 | 后提交的任务先显示"等待处理"；各卡片的阶段、原因、结果图互不串扰 |
 | 刷新恢复 | 任务处理中时刷新页面，或关闭标签页过一会儿再打开"我的作品" | 记录从后端恢复，未完成的任务继续更新 |
 | 查询故障 ≠ 任务失败 | 任务处理中时打开 `queryOutage` | 卡片仍显示"处理中"，附黄色提示"状态更新失败，任务仍在后台处理"和"重新查询"；关闭故障后点"重新查询"看到真实状态 |
 | 真实的素材检查失败 | 在"萌宠贴纸"上传 `tiny-32.png` 后提交 | "失败 · 素材检查"，原因"第 1 张图片分辨率过低（32×32），至少需要 64×64" |
@@ -260,7 +260,7 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 | 契约一致性 | `verify/fixtures/` 是接口响应样例；前端测试用它当假响应，后端 `ContractShapeIT` 和冒烟脚本用它比对字段集合 | — |
 | API 冒烟 | `verify/smoke.mjs`：模板、账号、上传、任务（受理耗时、阶段只前进、指定阶段失败、快照隔离、查询故障、真实素材检查失败、幂等、校验）、用户隔离，共 69 项 | `node verify/smoke.mjs` |
 | 人工验收 | `verify/CHECKLIST.md`：S01–S13 演示场景、键盘与小屏走查 | — |
-| CI | `.github/workflows/ci.yml`：push 和 pull request 时运行 frontend（lint、typecheck、test、build）、backend（`./mvnw verify`，含 Testcontainers）、compose（从零构建启动后经 :3000 跑冒烟）三个 job。**（待补充：推送到 GitHub 后的运行结果链接）** | — |
+| CI | `.github/workflows/ci.yml`：push 和 pull request 时运行 frontend（lint、typecheck、test、build）、backend（`./mvnw verify`，含 Testcontainers）、compose（从零构建启动后经 :3000 跑冒烟）三个 job。仓库目前只在本地，还没有在 GitHub 上跑过；三个 job 做的事都在本机用同样的命令跑通过：前端 lint、typecheck、60 项测试和构建，后端 59 项测试，从零构建后的冒烟 69 项。 | — |
 
 ## 12. 完成情况与已知限制
 
@@ -283,7 +283,7 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 - 没有 Docker 的环境里，Testcontainers 集成测试会被跳过（CI 中会真正执行）。
 - 经过前端（:3000）直接上传超过 10MB 的请求时，Tomcat 返回 413 后会主动断开连接（Tomcat 对 413 的固定行为），Next 的转发会等到 30 秒超时才返回 500；直连后端（:8080）会正确返回 413 `FILE_TOO_LARGE`。正常使用时，前端会先按模板上限（最大 5MB）拦下文件，不会走到这里；10MB 以内的上传经过转发是完整的（已用 9.5MB 文件校验过字节一致）。
 
-实际投入：**（待补充：开始和结束时间、各阶段用时、中间卡住的地方）**
+实际投入：**4h**
 
 ## 13. 部署与回滚
 
@@ -297,15 +297,28 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 
 ## 14. AI 使用说明
 
-**（待补充：请用第一人称写——怎么拆任务、怎么给上下文、怎么生成和修改代码、怎么验证、怎么修正问题，并举一个具体例子。）**
+这个项目我用了两个 AI 编程助手：**Claude**（Claude Code）负责需求分析、规格、验证资产、前端、Compose、CI 和联调；**Codex** 负责后端。代码基本都是 AI 生成的，我的精力主要放在拆任务、给上下文、每个阶段把关和最后的验收上。
 
-以下是可以参考的事实素材（草稿，请改写成自己的话，删掉不需要的部分）：
+**拆任务。** 拿到题目后，我先让 Claude 做需求分析，把题目要求整理成 R-01 到 R-14 的需求点，再展开成 `spec/` 下的一套规格：架构、接口契约、数据、前端设计、验证方案和任务清单。分工是我定的：前端交给 Claude，后端交给 Codex，目标一天做完。我也提过，有必要的话可以加 RocketMQ 和 Redis。Claude 分析后建议不加，我同意了：单实例、一天的工期，它们只会增加部署和排错的成本；改为在投递的地方留一个 `TaskDispatcher` 接口，以后接消息队列只需要加一个实现。具体工作拆成三条线：I0–I5（仓库和验证资产、Compose、CI、联调、审查后端、README）、B0–B7（后端）、F0–F7（前端），每个阶段写明要做什么、达到什么门槛才算完成（`spec/06` §3）。前后端只通过 `spec/03-api.md` 和 `verify/fixtures/` 里的契约样例对接，所以两边可以同时开工。
 
-- 分工：一个 AI 窗口负责需求分析、规格文档（`spec/`）、验证资产（`verify/`）、前端和联调；另一个 AI（Codex）按规格实现后端，按阶段 B0–B7 提交。
-- 先定接口契约（`spec/03-api.md`）和契约样例，再让前后端并行开发；规格之外的决定分别记在 `backend/DECISIONS.md`、`frontend/DECISIONS.md`。
-- 验证先行：编码前先写好冒烟脚本和人工清单；冒烟脚本先用一个注入了 14 种典型缺陷的临时假后端验证过，确认每种缺陷都能被发现；核心逻辑（后端流水线与状态守卫、前端任务跟踪）先写测试、确认失败，再写实现。
-- 问题修正的例子可以从 `backend/DECISIONS.md` 的"问题记录"里选，例如：64 位中文密码 UTF-8 编码超过 BCrypt 的 72 字节上限导致注册返回 500，先写复现测试再修。
-- 使用 AI 时的人工检查点：评审规格、确认技术选型、每个阶段运行测试和冒烟、亲手走查 `verify/CHECKLIST.md`。
+**给上下文。** 两个 AI 读的是同一套 spec。我尽量不在聊天里口头补充需求，这样两边的理解一致，出了问题也能对着文档查。交给 Codex 的启动提示词就在 `spec/README.md` 里，一共 17 条：先读完 spec，再按 B0–B7 的顺序做；只改自己的目录，只 `git add` 自己的路径；接口必须和契约完全一致，觉得契约有问题就先停下来说明，不能自己改；六条红线（比如提交接口不能等待任何步骤、查询只读、终态不能改回）；每个阶段测试和冒烟都通过，才能进入下一阶段；还有本机环境的提醒（同时装着 JDK 17 和 21、Maven Wrapper 下载慢）。Claude 写前端时遵守同样的规则。规格没覆盖的细节，两边各自记进 `DECISIONS.md`。
+
+**生成和修改代码。** 一个阶段一个提交，提交信息以阶段号开头，`git log` 里能看到整个推进过程。I0 的规格和验证资产在后端开工前就写好了，但等到开始写前端时才第一次提交，所以在 `git log` 里排在 B0–B7 之后。核心逻辑测试先行：后端 B5 先写 `TaskPipelineTest` 和 `TaskStateGuardIT`，前端 F5 先写任务跟踪的测试，都是确认测试失败之后再写实现。后端的问题由 Claude 写成修复提示词，我转给 Codex；前端的问题由 Claude 直接改。需求有变化时，先改契约和检查，再改实现。
+
+**验证。** 验证资产比业务代码先写：I0 阶段就有了契约样例、冒烟脚本 `verify/smoke.mjs` 和人工清单 `verify/CHECKLIST.md`。为了确认冒烟脚本本身可靠，Claude 还写了一个临时的假后端，在里面注入 14 种典型缺陷，脚本每一种都能查出来。Codex 写完后端后，Claude 独立复核了一遍：跑全部测试（59 项）和冒烟（69 项），再对照红线逐条看代码。前端每个阶段都跑 lint、typecheck 和 Vitest，并在浏览器里实际操作。最后从零构建（`docker compose down -v`，再 `docker compose up --build --wait`）并跑冒烟。从零构建和冒烟我自己也跑了一遍，并按清单走查。
+
+**一个具体的例子：切换账号后看到了上一个用户的结果图。** 联调时，Claude 在浏览器里按 S11 测切换账号：先用 demo 看一张结果图，切换到 alice 后，在地址栏打开 demo 那个任务的结果地址。这里应该是 404，页面却显示出了 demo 的图。绕过缓存再请求一次，服务端返回的确实是 404，说明权限检查没有问题，图片来自浏览器缓存。原因是私有图片的响应带了 `Cache-Control: private, max-age=86400`，允许浏览器缓存一天，却没有带 `Vary: Cookie`，于是同一个 URL 的缓存在不同的登录会话之间被复用了。冒烟脚本和集成测试都不经过浏览器缓存，所以之前一直没有暴露。
+
+修的时候先改契约：在 `spec/03-api.md` 里写明私有图片必须带 `Vary: Cookie`，并给冒烟脚本加上对应的检查（`e52de1b`）。然后 Claude 把复现步骤、根因和要求写成提示词，我转给 Codex。Codex 先在 `MaterialUploadIT` 和 `TaskFlowIT` 里加上对这两个响应头的断言，确认修复前会失败，再改两个图片接口（B8，`9fd1946`），并把经过记进 `backend/DECISIONS.md` 的问题记录。验证分三步：后端 59 项测试全部通过；Claude 在浏览器里把切换账号重走一遍，alice 看不到 demo 的图了；最后从零构建，经过 :3000 的 69 项冒烟全部通过，我自己也从零跑了一遍。修复前已经缓存的图片还可能被复用一段时间，所以 `CHECKLIST.md` 里加了一条提醒：走查前先清缓存，或者用无痕窗口。这件事让我体会到：自动化测试写得再全，也要在真实的浏览器里走一遍。
+
+**其他几个问题：**
+
+- 64 个中文字符的密码，UTF-8 编码后有 192 字节，超过 BCrypt 72 字节的上限，注册时返回 500。Codex 在 B6 补边界测试时发现，先写复现测试再修。`backend/DECISIONS.md` 的问题记录里还有几条。
+- 经过 Next 转发上传超过 10MB 的文件时，Tomcat 返回 413 后会断开连接，Next 要等到 30 秒超时才返回 500。评估后没有修：前端会先按模板上限（最大 5MB）拦下文件，正常使用走不到这里，所以写进了已知限制。
+- AI 也会犯低级错误。有一次 Claude 用 Windows PowerShell 5.1 改文件，把 UTF-8 的中文写成了乱码，检查改动时发现，用 git 还原后换了编辑方式。
+- 最后走查时，Claude 帮我测清单里的命令，发现 PowerShell 的 `Invoke-RestMethod` 访问 `localhost:8080` 会卡到超时：它会先尝试 IPv6，而在这台机器上，经 IPv6 访问 Docker 映射出来的端口会一直挂着。于是把文档里的 PowerShell 命令改成了 `127.0.0.1`。
+
+**我自己做的部分：** 定分工和节奏，确认方案；准备本机环境（JDK 21、Docker Desktop）；在两个 AI 之间传递提示词；看每个阶段的结果，决定是否进入下一阶段；最后自己从零构建、跑冒烟、按清单走查，确认没问题后再提交。
 
 ## 15. 复用来源
 
@@ -315,4 +328,4 @@ Invoke-RestMethod -Method Post -Uri "$sim/reset"
 
 ---
 
-验收 commit：**（待补充）**
+验收 commit：**main 分支的最新提交**。最后一次改代码的提交是 `9fd1946`（B8：私有图片加 `Vary: Cookie`），之后只改了文档；从零构建、测试和冒烟都在它之后重新跑过。

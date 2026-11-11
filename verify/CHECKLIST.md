@@ -43,10 +43,12 @@
 
 ### 0.2 模拟控制命令
 
-Windows PowerShell 5.1 会吃掉传给 `curl.exe` 的 JSON 里的双引号，所以这里用 `Invoke-RestMethod`：
+模拟配置也可以直接在 http://localhost:3000/dev 页面上改。
+
+Windows PowerShell 5.1 会吃掉传给 `curl.exe` 的 JSON 里的双引号，所以这里用 `Invoke-RestMethod`。地址写 `127.0.0.1` 而不是 `localhost`：`Invoke-RestMethod` 会先尝试 IPv6 的 `::1`，在部分 Docker Desktop 环境里，这个连接既不成功也不马上失败，命令会卡很久甚至超时。
 
 ```powershell
-$sim = 'http://localhost:8080/api/dev/simulation'
+$sim = 'http://127.0.0.1:8080/api/dev/simulation'
 Invoke-RestMethod -Method Patch -Uri $sim -ContentType 'application/json' -Body '{"failStage":"GENERATING"}'        # 指定失败阶段
 Invoke-RestMethod -Method Patch -Uri $sim -ContentType 'application/json' -Body '{"delaysMs":{"GENERATING":10000}}' # 调整耗时
 Invoke-RestMethod -Method Patch -Uri $sim -ContentType 'application/json' -Body '{"queryOutage":true}'               # 打开查询故障
@@ -65,17 +67,21 @@ curl -s -X PATCH -H 'Content-Type: application/json' -d '{"queryOutage":false}' 
 curl -s -X POST $SIM/reset
 ```
 
-把后端切到 1 个 worker（S05、S12 用），以及恢复：
+把后端切到 1 个 worker（S05、S12 用），以及恢复。在仓库根目录执行，`docker compose` 要读取这里的 `docker-compose.yml`：
 
 ```powershell
-$env:TASK_WORKERS = '1'; docker compose up -d --wait backend     # 切到 1 个 worker
-Remove-Item Env:TASK_WORKERS; docker compose up -d --wait backend # 恢复为默认的 2 个
+# 切到 1 个 worker
+$env:TASK_WORKERS = '1'; docker compose up -d --wait backend
+# 恢复为默认的 2 个（新开的窗口里没有这个变量，也不会报错）
+Remove-Item Env:TASK_WORKERS -ErrorAction SilentlyContinue; docker compose up -d --wait backend
 ```
 
 ```bash
-TASK_WORKERS=1 docker compose up -d --wait backend
-docker compose up -d --wait backend
+TASK_WORKERS=1 docker compose up -d --wait backend   # 切到 1 个 worker
+docker compose up -d --wait backend                  # 恢复为默认的 2 个
 ```
+
+PowerShell 里设置的 `$env:TASK_WORKERS` 在关闭窗口前一直有效，这期间在同一个窗口里执行的 `docker compose up` 都会用 1 个 worker，所以场景做完要记得恢复。当前值可以用 `docker compose exec backend printenv TASK_WORKERS` 查看。
 
 ## 1. 演示场景
 
